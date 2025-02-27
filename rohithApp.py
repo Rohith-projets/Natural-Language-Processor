@@ -54,8 +54,8 @@ if st.session_state["allData"]:
     dataset = st.session_state["allData"].get(selected_file)
     st.write("### Preview Data")
     st.dataframe(dataset.head())
-    
-    col1, col2 = st.columns([1, 2])
+    st.subheader("Select Operation And Perform",divider='blue')
+    col1, col2 = st.columns([1, 2],border=True)
     radio_options = col1.radio("Advanced Options", [
         "Extract Tags", "Extract Noun Phrases", "Sentiment Analysis", "Singularize",
         "Pluralize", "Lemmatize", "Definitions", "Spelling Correction", "Spell Check",
@@ -90,5 +90,5 @@ if st.session_state["allData"]:
             data[f"{selected_column} (Bigrams)"] = data[selected_column].apply(lambda x: list(TextBlob(str(x)).ngrams(2)))
         elif radio_options == "Text Classification":
             st.warning("Text classification requires a trained model in TextBlob, which is not included by default.")
-        
+        st.subheader("you Can View Result Here",divider='blue')
         st.dataframe(data)

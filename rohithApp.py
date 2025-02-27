@@ -4,15 +4,12 @@ import chardet
 from textblob import TextBlob
 import nltk
 import os
+from textblob.download_corpora import download_all
 
 # Ensure necessary corpora are downloaded
 @st.cache_resource
 def download_textblob_corpora():
-    nltk.download('brown')
-    nltk.download('punkt')
-    nltk.download('averaged_perceptron_tagger')
-    nltk.download('wordnet')
-    nltk.download('omw-1.4')
+    download_all()
 download_textblob_corpora()
 
 # Function to detect file encoding

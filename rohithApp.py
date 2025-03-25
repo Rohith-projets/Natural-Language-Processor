@@ -41,8 +41,6 @@ def read_file(uploaded_file):
 # Initialize session state if not exists
 if "allData" not in st.session_state:
     st.session_state["allData"] = {}
-if "processed_data" not in st.session_state:
-    st.session_state["processed_data"] = {}
 
 # Sidebar file uploader
 with st.sidebar:
@@ -125,57 +123,48 @@ with tab1:
             data = dataset.copy()
             with col2:
                 if radio_options == "Extract Tags":
-                    data[f"{selected_column} (Tags)"] = data[selected_column].apply(lambda x: TextBlob(str(x)).tags)
-                    st.session_state["processed_data"]["tags"] = data
+                    data[f"{selected_column}_tags"] = data[selected_column].apply(lambda x: TextBlob(str(x)).tags)
                 elif radio_options == "Extract Noun Phrases":
-                    data[f"{selected_column} (Noun Phrases)"] = data[selected_column].apply(lambda x: TextBlob(str(x)).noun_phrases)
-                    st.session_state["processed_data"]["noun_phrases"] = data
+                    data[f"{selected_column}_noun_phrases"] = data[selected_column].apply(lambda x: TextBlob(str(x)).noun_phrases)
                 elif radio_options == "Sentiment Analysis":
-                    data[f"{selected_column} (Sentiment)"] = data[selected_column].apply(lambda x: TextBlob(str(x)).sentiment)
-                    st.session_state["processed_data"]["sentiment"] = data
+                    data[f"{selected_column}_sentiment"] = data[selected_column].apply(lambda x: TextBlob(str(x)).sentiment)
                 elif radio_options == "Singularize":
-                    data[f"{selected_column} (Singularized)"] = data[selected_column].apply(
+                    data[f"{selected_column}_singularized"] = data[selected_column].apply(
                         lambda x: ' '.join([word.singularize() for word in TextBlob(str(x)).words]))
-                    st.session_state["processed_data"]["singularized"] = data
                 elif radio_options == "Pluralize":
-                    data[f"{selected_column} (Pluralized)"] = data[selected_column].apply(
+                    data[f"{selected_column}_pluralized"] = data[selected_column].apply(
                         lambda x: ' '.join([word.pluralize() for word in TextBlob(str(x)).words]))
-                    st.session_state["processed_data"]["pluralized"] = data
                 elif radio_options == "Lemmatize":
-                    data[f"{selected_column} (Lemmatized)"] = data[selected_column].apply(
+                    data[f"{selected_column}_lemmatized"] = data[selected_column].apply(
                         lambda x: ' '.join([word.lemmatize() for word in TextBlob(str(x)).words]))
-                    st.session_state["processed_data"]["lemmatized"] = data
                 elif radio_options == "Definitions":
-                    data[f"{selected_column} (Definitions)"] = data[selected_column].apply(
+                    data[f"{selected_column}_definitions"] = data[selected_column].apply(
                         lambda x: [word.definitions for word in TextBlob(str(x)).words])
-                    st.session_state["processed_data"]["definitions"] = data
                 elif radio_options == "Spelling Correction":
-                    data[f"{selected_column} (Corrected)"] = data[selected_column].apply(
+                    data[f"{selected_column}_corrected"] = data[selected_column].apply(
                         lambda x: str(TextBlob(str(x)).correct()))
-                    st.session_state["processed_data"]["corrected"] = data
                 elif radio_options == "Spell Check":
-                    data[f"{selected_column} (Spell Check)"] = data[selected_column].apply(
+                    data[f"{selected_column}_spellcheck"] = data[selected_column].apply(
                         lambda x: TextBlob(str(x)).spellcheck())
-                    st.session_state["processed_data"]["spellcheck"] = data
                 elif radio_options == "Word Counts":
-                    data[f"{selected_column} (Word Count)"] = data[selected_column].apply(
+                    data[f"{selected_column}_word_count"] = data[selected_column].apply(
                         lambda x: len(TextBlob(str(x)).words))
-                    st.session_state["processed_data"]["word_counts"] = data
                 elif radio_options == "N Grams":
-                    data[f"{selected_column} ({n_value}-grams)"] = data[selected_column].apply(
+                    data[f"{selected_column}_{n_value}-grams"] = data[selected_column].apply(
                         lambda x: list(TextBlob(str(x)).ngrams(n_value)))
-                    st.session_state["processed_data"]["ngrams"] = data
+                
+                # Store updated DataFrame back in allData
+                st.session_state["allData"][selected_file] = data
                 
                 st.subheader("Result", divider='blue')
                 st.dataframe(data)
 
 with tab2:
-    if st.session_state["processed_data"]:
-        selected_processed = st.selectbox("Select processed data to view", 
-                                        list(st.session_state["processed_data"].keys()))
-        st.dataframe(st.session_state["processed_data"][selected_processed])
+    if st.session_state["allData"]:
+        selected_file = st.selectbox("Select file to view", list(st.session_state["allData"].keys()))
+        st.dataframe(st.session_state["allData"][selected_file])
     else:
-        st.info("No processed data available. Perform operations in the 'Operations' tab first.")
+        st.info("No files available to view.")
 
 with tab3:
     if st.session_state["allData"]:
@@ -184,10 +173,5 @@ with tab3:
         if st.button("Delete Selected File"):
             del st.session_state["allData"][file_to_delete]
             st.success(f"File {file_to_delete} deleted successfully!")
-            # Also delete any processed data from this file
-            keys_to_delete = [k for k in st.session_state["processed_data"] 
-                            if k.startswith(file_to_delete)]
-            for k in keys_to_delete:
-                del st.session_state["processed_data"][k]
     else:
         st.info("No files available to delete.")

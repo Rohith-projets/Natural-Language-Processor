@@ -57,7 +57,7 @@ with st.sidebar:
 st.title("Text Processing with TextBlob")
 
 # Create tabs
-tab1, tab2, tab3 = st.tabs(["Operations", "View Data", "Delete Data"])
+tab1, tab2, tab3,tab4 = st.tabs(["Operations", "View Data", "Delete Data","Add-Delete"])
 
 with tab1:
     if st.session_state["allData"]:
@@ -120,41 +120,60 @@ with tab1:
                         col2.success(f"Prediction: {result}")
         
         if col2.button("Apply", use_container_width=True, type='primary') and radio_options != "Text Classification":
-            data = dataset.copy()
+            data = dataset.copy(deep=True)
             with col2:
                 if radio_options == "Extract Tags":
                     data[f"{selected_column}_tags"] = data[selected_column].apply(lambda x: TextBlob(str(x)).tags)
+                    data=data.drop(columns=[selected_column])
+                    st.session_state['allData'][f'Extracted Tags For {selected_column}']=data
                 elif radio_options == "Extract Noun Phrases":
                     data[f"{selected_column}_noun_phrases"] = data[selected_column].apply(lambda x: TextBlob(str(x)).noun_phrases)
+                    data=data.drop(columns=[selected_column])
+                    st.session_state['allData'][f'Noun Phrases For {selected_column}']=data
                 elif radio_options == "Sentiment Analysis":
                     data[f"{selected_column}_sentiment"] = data[selected_column].apply(lambda x: TextBlob(str(x)).sentiment)
+                    data=data.drop(columns=[selected_column])
+                    st.session_state['allData'][f'Sentiment Analysis For {selected_column}']=data
                 elif radio_options == "Singularize":
                     data[f"{selected_column}_singularized"] = data[selected_column].apply(
                         lambda x: ' '.join([word.singularize() for word in TextBlob(str(x)).words]))
+                    data=data.drop(columns=[selected_column])
+                    st.session_state['allData'][f'Singularization For {selected_column}']=data
                 elif radio_options == "Pluralize":
                     data[f"{selected_column}_pluralized"] = data[selected_column].apply(
                         lambda x: ' '.join([word.pluralize() for word in TextBlob(str(x)).words]))
+                    data=data.drop(columns=[selected_column])
+                    st.session_state['allData'][f'Pluralization For {selected_column}']=data
                 elif radio_options == "Lemmatize":
                     data[f"{selected_column}_lemmatized"] = data[selected_column].apply(
                         lambda x: ' '.join([word.lemmatize() for word in TextBlob(str(x)).words]))
+                    data=data.drop(columns=[selected_column])
+                    st.session_state['allData'][f'Lemmatization For {selected_column}']=data
                 elif radio_options == "Definitions":
                     data[f"{selected_column}_definitions"] = data[selected_column].apply(
                         lambda x: [word.definitions for word in TextBlob(str(x)).words])
+                    data=data.drop(columns=[selected_column])
+                    st.session_state['allData'][f'Definitions For {selected_column}']=data
                 elif radio_options == "Spelling Correction":
                     data[f"{selected_column}_corrected"] = data[selected_column].apply(
                         lambda x: str(TextBlob(str(x)).correct()))
+                    data=data.drop(columns=[selected_column])
+                    st.session_state['allData'][f'Spelling Corrections For {selected_column}']=data
                 elif radio_options == "Spell Check":
                     data[f"{selected_column}_spellcheck"] = data[selected_column].apply(
                         lambda x: TextBlob(str(x)).spellcheck())
+                    data=data.drop(columns=[selected_column])
+                    st.session_state['allData'][f'Spelling Checkers For {selected_column}']=data
                 elif radio_options == "Word Counts":
                     data[f"{selected_column}_word_count"] = data[selected_column].apply(
                         lambda x: len(TextBlob(str(x)).words))
+                    data=data.drop(columns=[selected_column])
+                    st.session_state['allData'][f'Word Counts For {selected_column}']=data
                 elif radio_options == "N Grams":
                     data[f"{selected_column}_{n_value}-grams"] = data[selected_column].apply(
                         lambda x: list(TextBlob(str(x)).ngrams(n_value)))
-                
-                # Store updated DataFrame back in allData
-                st.session_state["allData"][selected_file] = data
+                    data=data.drop(columns=[selected_column])
+                    st.session_state['allData'][f'NGrams For {selected_column}']=data
                 
                 st.subheader("Result", divider='blue')
                 st.dataframe(data)
@@ -175,3 +194,47 @@ with tab3:
             st.success(f"File {file_to_delete} deleted successfully!")
     else:
         st.info("No files available to delete.")
+with tab4:
+    options=st.pills("select options",["add","delete"])
+    
+    if options=="add":
+        col1,col2=st.columns([1,2],border=True)
+        col_options=col1.selectbox("Operations present",["Add columns From Outputs","Add Columns From Other Data"])
+        if col_options=="Add columns From Outputs":
+            outputs=st.session_state['allData'].keys()
+            col2.subheader("Adust the settings below for performing action",divider='blue')
+            source_data=col2.selectbox("Select the source data",outputs)
+            destination_data=col2.selectbox("Select the destination data",outputs)
+            if destination_data:
+                select_columns=col2.multiselect("Select columns to add",st.session_state['allData'][source_data].columns)
+                if col2.button("Apply Operation"):
+                    st.session_state['allData'][destination_data][select_columns]=st.session_state['allData'][source_data][select_columns]
+                    st.session_state['allData'][f'added columns from {destination_data} to {source_data} : {select_columns}']=st.session_state['allData'][destination_data]
+                    col2.success("Operation - Success")
+        else:
+            data=col2.file_uploader("Upload The data ",["csv","excel"])
+            if data:
+                dataset,file_name=read_file(data)
+                select_columns=col2.multiselect("Select the columns to add",dataset.columns)
+                destination_data=col2.selectbox("Select the destination dataset",st.session_state['allData'].keys())
+                if destination_data:
+                    try:
+                        if col2.button("Apply Operation",use_container_width=True,type='primary'):
+                            st.session_state['allData'][destination_data][select_columns]=dataset[select_columns]
+                            st.session_state['allData'][f'Added Columns From {file_name} to {destination_data} : {select_columns}']=st.session_state['allData'][destination_data]
+                            col2.success("Operation - Success")
+                    except Exception as e:
+                        col2.error(e)
+    if options=="delete":
+        col1,col2=st.columns([1,2],border=True)
+        col1_options=col1.selectbox("Operations Present",["Delete Columns From Outputs"])
+        if col1_options=="Delete Columns From Outputs":
+            data=col2.selectbox("Select the output",st.session_state['allData'].keys())
+            if data:
+                select_columns=col2.multiselect("Select columns to drop",st.session_state['allData'][data].columns)
+                if select_columns:
+                    if col2.button("Apply Operation",use_container_width=True,type='primary'):
+                        st.session_state['allData'][data]=st.session_state['allData'][data].drop(columns=select_columns)
+                        col2.success("Operation - Success")
+                
+                
